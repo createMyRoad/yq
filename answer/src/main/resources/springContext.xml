@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:tx="http://www.springframework.org/schema/tx"
+	xmlns:aop="http://www.springframework.org/schema/aop"
+	xsi:schemaLocation="
+        http://www.springframework.org/schema/beans     
+        http://www.springframework.org/schema/beans/spring-beans-4.0.xsd
+        http://www.springframework.org/schema/context
+        http://www.springframework.org/schema/context/spring-context-4.0.xsd
+        http://www.springframework.org/schema/aop
+        http://www.springframework.org/schema/aop/spring-aop-4.0.xsd
+        http://www.springframework.org/schema/tx
+        http://www.springframework.org/schema/tx/spring-tx-4.0.xsd
+        ">
+
+	<!-- alibaba data source -->
+	<bean id="dataSource0" class="com.alibaba.druid.pool.DruidDataSource"
+		init-method="init" destroy-method="close">
+		<property name="url" value="${jdbc.master.url}" />
+		<property name="username" value="${jdbc.username}" />
+		<property name="password" value="${jdbc.password}" />
+		<property name="maxActive" value="${jdbc.datasource.maxActive}"/>
+		<property name="minIdle" value="${jdbc.datasource.minIdle}"/>
+	</bean>
+	
+	<!--<bean id="dataSourceTransactionProcessor"-->
+		<!--class="com.tianwen.springcloud.datasource.druid.ReadWriteDataSourceProcessor">-->
+		<!--<property name="forceChoiceReadWhenWrite" value="true" />-->
+	<!--</bean>-->
+
+	<!--<aop:config expose-proxy="true">-->
+		<!--&lt;!&ndash; 只对业务逻辑层实施事务  定义在service包和所有子包里的任意类的任意方法的执行&ndash;&gt;-->
+		<!--<aop:pointcut id="txPointcut" -->
+			<!--expression="execution(* com.tianwen..service..*.*(..)) || execution(* com.tianwen.springcloud.datasource.base.*.*(..))" />-->
+		<!--<aop:advisor advice-ref="txAdvice" pointcut-ref="txPointcut" />-->
+		<!--<aop:aspect order="-2147483648" ref="dataSourceTransactionProcessor">-->
+			<!--<aop:around pointcut-ref="txPointcut" method="determineReadOrWriteDB" />-->
+		<!--</aop:aspect>-->
+	<!--</aop:config>-->
+
+	<bean id="txManager"
+		class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+		<property name="dataSource" ref="dataSource0" />
+	</bean>
+
+	<tx:advice id="txAdvice" transaction-manager="txManager">
+		<tx:attributes>
+			<tx:method name="save*" propagation="REQUIRED" />
+			<tx:method name="add*" propagation="REQUIRED" />
+			<tx:method name="create*" propagation="REQUIRED" />
+			<tx:method name="insert*" propagation="REQUIRED" />
+			<tx:method name="update*" propagation="REQUIRED" />
+			<tx:method name="merge*" propagation="REQUIRED" />
+			<tx:method name="del*" propagation="REQUIRED" />
+			<tx:method name="remove*" propagation="REQUIRED" />
+			<tx:method name="rechange*" propagation="REQUIRED" />
+			<tx:method name="batch*" propagation="REQUIRED" />
+
+			<tx:method name="exist*" read-only="true" propagation="REQUIRED"/>
+			<tx:method name="put*" read-only="true" propagation="REQUIRED"/>
+			<tx:method name="query*" read-only="true" propagation="REQUIRED"/>
+			<tx:method name="select*" read-only="true" propagation="REQUIRED"/>
+			<tx:method name="use*" read-only="true" propagation="REQUIRED"/>
+			<tx:method name="get*" read-only="true" propagation="REQUIRED" />
+			<tx:method name="count*" read-only="true" propagation="REQUIRED"/>
+			<tx:method name="find*" read-only="true" propagation="REQUIRED"/>
+			<tx:method name="search*" read-only="true" propagation="REQUIRED"/>
+			<tx:method name="list*" read-only="true" propagation="REQUIRED"/>
+
+			<tx:method name="*" propagation="SUPPORTS" />
+		</tx:attributes>
+	</tx:advice>
+
+	<!-- 集成通用mybatis mapper，具体参考com.kaishustory.commons.datasource.test.mapper包文件 -->
+	<bean class="tk.mybatis.spring.mapper.MapperScannerConfigurer">
+		<property name="basePackage" value="com.wuhan.yq.dao" />
+		<property name="properties">
+			<value>
+				mappers=com.wuhan.yq.datasource.mapper.MyMapper
+				notEmpty=true
+				ORDER=BEFORE
+			</value>
+		</property>
+	</bean>
+
+	<!-- mybatis session factory -->
+	<bean id="sqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+		<property name="dataSource" ref="dataSource0" />
+		<property name="typeAliasesPackage" value="${mybatis.typeAliasesPackage}" />
+		<property name="mapperLocations" value="${mybatis.mapperLocations}" />
+		<property name="configLocation" value="${mybatis.configLocation}" />
+	</bean>
+
+	<bean id="sqlSession" class="org.mybatis.spring.SqlSessionTemplate">
+		<constructor-arg index="0" ref="sqlSessionFactory" />
+	</bean>
+
+	<!-- 集成sqlmapper工具类，支持mybatis常用功能封装 -->
+	<!-- <bean id="sqlMapper" class="com.kaishustory.commons.mybatis.SqlMapper">
+		<constructor-arg index="0" ref="sqlSession" />
+	</bean> -->
+
+	<bean id="jdbcTemplate" class="org.springframework.jdbc.core.JdbcTemplate">
+		<property name="dataSource" ref="dataSource0" />
+	</bean>
+
+	<!-- 配置线程池 -->
+	<bean id="taskExecutor"
+		class="org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor">
+		<!-- 线程池维护线程的最少数量 -->
+		<property name="corePoolSize" value="5" />
+		<!-- 线程池维护线程所允许的空闲时间 -->
+		<property name="keepAliveSeconds" value="30000" />
+		<!-- 线程池维护线程的最大数量 -->
+		<property name="maxPoolSize" value="1000" />
+		<!-- 线程池所使用的缓冲队列 -->
+		<property name="queueCapacity" value="200" />
+	</bean> 
+</beans>
